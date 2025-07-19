@@ -9,7 +9,7 @@ import jakarta.persistence.*;
 public class Section {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
     private String sectionName;
     private String description;

@@ -1,7 +1,7 @@
 package com.Basics.onlineCoursePlatform.repository;
 
 import com.Basics.onlineCoursePlatform.entity.User;
-import com.Basics.onlineCoursePlatform.model.Role;
+import com.Basics.onlineCoursePlatform.entity.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

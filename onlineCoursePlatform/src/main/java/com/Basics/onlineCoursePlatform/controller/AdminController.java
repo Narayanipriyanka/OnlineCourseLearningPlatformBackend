@@ -1,52 +1,80 @@
 package com.Basics.onlineCoursePlatform.controller;
 
-import com.Basics.onlineCoursePlatform.entity.Course;
+
+import com.Basics.onlineCoursePlatform.DTO.CourseDTO;
+import com.Basics.onlineCoursePlatform.DTO.InstructorDTO;
+import com.Basics.onlineCoursePlatform.DTO.StudentDTO;
+
 import com.Basics.onlineCoursePlatform.entity.User;
-import com.Basics.onlineCoursePlatform.model.Role;
-import com.Basics.onlineCoursePlatform.repository.CourseRepository;
-import com.Basics.onlineCoursePlatform.repository.UserRepository;
+import com.Basics.onlineCoursePlatform.service.AdminService;
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminController {
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private CourseRepository courseRepository;
+    private AdminService adminService;
 
+    @Operation(summary = "Get list of instructors")
     @GetMapping("/instructors")
-      public ResponseEntity<List<User>> getInstructors() {
-        return ResponseEntity.ok(userRepository.findByRole(Role.INSTRUCTOR));
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<InstructorDTO>> getInstructors(Authentication authentication) {
+        return ResponseEntity.ok(adminService.getInstructors(authentication));
     }
 
+    @Operation(summary = "Get instructor courses")
     @GetMapping("/instructors/{id}/courses")
-    public ResponseEntity<List<Course>> getInstructorCourses(@PathVariable Long id) {
-        User instructor = userRepository.findById(id).orElseThrow();
-        return ResponseEntity.ok(courseRepository.findByInstructor(instructor));
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<CourseDTO>> getInstructorCourses(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(adminService.getInstructorCourses(id, authentication));
     }
 
+    @Operation(summary = "Get students")
     @GetMapping("/students")
-    public ResponseEntity<List<User>> getStudents() {
-        return ResponseEntity.ok(userRepository.findByRole(Role.STUDENT));
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<StudentDTO>> getStudents(Authentication authentication) {
+        return ResponseEntity.ok(adminService.getStudents(authentication));
     }
 
-    @PostMapping("/instructors")
-    public ResponseEntity<User> addInstructor(@RequestBody User user) {
-        user.setRole(Role.INSTRUCTOR);
-        User savedUser = userRepository.save(user);
-        return ResponseEntity.ok(savedUser);
+    @Operation(summary = "Add instructor Add a new instructor")
+    @PostMapping(value = "/instructors", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<InstructorDTO> addInstructor(@RequestPart("avatar") MultipartFile avatar,
+                                              @RequestParam("name") String name,
+                                              @RequestParam("email") String email,
+                                              @RequestParam("password") String password,
+                                              @RequestParam("bio") String bio
+    ) throws IOException {
+       return adminService.addInstructor(avatar,name,email,password,bio);
     }
 
+
+
+
+
+
+    @Operation(summary = "Delete instructor Delete an instructor")
     @DeleteMapping("/instructors/{id}")
-    public ResponseEntity<Void> deleteInstructor(@PathVariable Long id) {
-        userRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> deleteInstructor(@PathVariable Long id, Authentication authentication) {
+        adminService.deleteInstructor(id, authentication);
+        return ResponseEntity.ok("Instructor deleted successfully");
     }
+
 
 }
+

@@ -1,20 +1,17 @@
 package com.Basics.onlineCoursePlatform.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.Basics.onlineCoursePlatform.DTO.SectionDTO;
+
+import com.Basics.onlineCoursePlatform.service.SectionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.Basics.onlineCoursePlatform.entity.Course;
-import com.Basics.onlineCoursePlatform.entity.Section;
-import com.Basics.onlineCoursePlatform.entity.User;
-import com.Basics.onlineCoursePlatform.model.Role;
-import com.Basics.onlineCoursePlatform.repository.CourseRepository;
-import com.Basics.onlineCoursePlatform.repository.SectionRepository;
-import com.Basics.onlineCoursePlatform.repository.UserRepository;
-import com.Basics.onlineCoursePlatform.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -23,108 +20,49 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/courses/{courseId}/sections")
+@SecurityRequirement(name = "bearerAuth")
 public class SectionController {
     @Autowired
-    private SectionRepository sectionRepository;
-    @Autowired
-    private CourseRepository courseRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private FileStorageService fileStorageService;
+    private SectionService sectionService;
+
+
+    @Operation(summary = "Get sections", description = "Get sections of a course")
     @GetMapping
-    public ResponseEntity<List<Section>> getSections(@PathVariable Long courseId, Principal principal) {
-        Course course = courseRepository.findById(courseId).orElseThrow();
-        User user = userRepository.findByEmail(principal.getName()).orElseThrow();
-
-        if (user.getRole().equals(Role.STUDENT) && !course.getIsPublished()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        if (user.getRole().equals(Role.INSTRUCTOR) && course.getInstructor().getId().equals(user.getId())) {
-            return ResponseEntity.ok(sectionRepository.findByCourse(course));
-        }
-
-        return ResponseEntity.ok(sectionRepository.findByCourse(course));
+    public ResponseEntity<List<SectionDTO>> getSections(@PathVariable Long courseId, Principal principal) {
+        return  sectionService.getSections(courseId,principal);
     }
-    @PostMapping
-    public ResponseEntity<Section> addSection(@PathVariable Long courseId,
-                                              @RequestParam("section") String sectionJson,
-                                              @RequestParam("videoFile") MultipartFile videoFile,
-                                              Principal principal) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        Section section = mapper.readValue(sectionJson, Section.class);
 
-        User user = userRepository.findByEmail(principal.getName()).orElseThrow();
-        Course course = courseRepository.findById(courseId).orElseThrow();
-        if (!course.getInstructor().getId().equals(user.getId())) {
-            return ResponseEntity.status(403).build();
-        }
-        section.setCourse(course);
-
-        // upload video file
-        String videoFileName = fileStorageService.uploadFile(videoFile);
-        section.setVideoFileName(videoFileName);
-
-        Section savedSection = sectionRepository.save(section);
-        return ResponseEntity.ok(savedSection);
+    @Operation(summary = "Add section", description = "Add a new section to a course")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('INSTRUCTOR')")
+    public ResponseEntity<SectionDTO> addSection(
+            @PathVariable Long courseId,
+            @ModelAttribute SectionDTO sectionDTO,
+            @RequestParam("videoFile") MultipartFile videoFile,
+            Principal principal) throws IOException {
+        return sectionService.addSection(courseId,sectionDTO,videoFile,principal);
     }
-    @PutMapping("/{sectionId}")
-    public ResponseEntity<Section> updateSection(@PathVariable Long courseId,
-                                                 @PathVariable Long sectionId,
-                                                 @RequestParam("section") String sectionJson,
-                                                 @RequestParam(value = "videoFile", required = false) MultipartFile videoFile,
-                                                 Principal principal) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        Section sectionDetails = mapper.readValue(sectionJson, Section.class);
 
-        User user = userRepository.findByEmail(principal.getName()).orElseThrow();
-        if (!user.getRole().equals(Role.INSTRUCTOR)) {
-            return ResponseEntity.status(403).build();
-        }
-        Course course = courseRepository.findById(courseId).orElseThrow();
-        if (!course.getInstructor().getId().equals(user.getId())) {
-            return ResponseEntity.status(403).build();
-        }
-        Section section = sectionRepository.findById(sectionId).orElseThrow();
-        section.setSectionName(sectionDetails.getSectionName());
-        section.setDescription(sectionDetails.getDescription());
-        if (videoFile != null) {
-            // upload new video file
-            String videoFileName = fileStorageService.uploadFile(videoFile);
-            section.setVideoFileName(videoFileName);
-        }
-        Section updatedSection = sectionRepository.save(section);
-        return ResponseEntity.ok(updatedSection);
+    @Operation(summary = "Update section", description = "Update an existing section")
+    @PutMapping(value = "/{sectionId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('INSTRUCTOR')and @courseSecurityService.isCourseOwner(authentication.name, #id)")
+    public ResponseEntity<SectionDTO> updateSection(
+            @PathVariable Long courseId,
+            @PathVariable Long sectionId,
+            @ModelAttribute SectionDTO sectionDTO,
+            @RequestParam(value = "videoFile", required = false) MultipartFile videoFile,
+            Principal principal) throws IOException {
+      return sectionService.updateSection(courseId,sectionId,sectionDTO,videoFile,principal);
     }
 
 
 
 
-
-
-
-
+    @Operation(summary = "Delete section", description = "Delete a section")
     @DeleteMapping("/{sectionId}")
-    public ResponseEntity<Void> deleteSection(@PathVariable Long courseId, @PathVariable Long sectionId, Principal principal) {
-        User user = userRepository.findByEmail(principal.getName()).orElseThrow();
-        if (!user.getRole().equals(Role.INSTRUCTOR)) {
-            return ResponseEntity.status(403).build();
-        }
-
-        Course course = courseRepository.findById(courseId).orElseThrow();
-        if (!course.getInstructor().getId().equals(user.getId())) {
-            return ResponseEntity.status(403).build();
-        }
-
-        Section section = sectionRepository.findById(sectionId).orElseThrow();
-        sectionRepository.delete(section);
-        return ResponseEntity.noContent().build();
+    @PreAuthorize("hasRole('INSTRUCTOR')and @courseSecurityService.isCourseOwner(authentication.name, #id)")
+    public ResponseEntity<String> deleteSection(@PathVariable Long courseId, @PathVariable Long sectionId, Principal principal) {
+       return sectionService.deleteSection(courseId,sectionId,principal);
     }
-
-
-
-
-
 
 }
