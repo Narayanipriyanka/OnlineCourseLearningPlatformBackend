@@ -1,18 +1,20 @@
 package com.Basics.onlineCoursePlatform.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 public class PasswordResetToken {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
+    @ManyToOne
+    private User user;
 
+    private String token;
+    private LocalDateTime expiresAt;
+    private Boolean isUsed;
     public User getUser() {
         return user;
     }
@@ -54,10 +56,5 @@ public class PasswordResetToken {
         this.user = user;
     }
 
-    @ManyToOne
-    private User user;
 
-    private String token;
-    private LocalDateTime expiresAt;
-    private Boolean isUsed;
 }

@@ -33,7 +33,6 @@ public class PasswordService {
 
         tokenRepo.save(resetToken);
 
-        // TODO: Implement actual email sending logic
         System.out.println("Reset token sent to email: " + token);
     }
 

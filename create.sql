@@ -1,0 +1,13 @@
+create table course (is_published bit, price decimal(38,2), created_at datetime(6), id bigint not null auto_increment, instructor_id bigint, updated_at datetime(6), category varchar(255), description varchar(255), title varchar(255), level enum ('ADVANCED','BEGINNER','INTERMEDIATE'), primary key (id)) engine=InnoDB;
+create table course_enrollment (course_id bigint, enrolled_at datetime(6), id bigint not null auto_increment, user_id bigint, primary key (id)) engine=InnoDB;
+create table password_reset_token (is_used bit, expires_at datetime(6), id bigint not null auto_increment, user_id bigint, token varchar(255), primary key (id)) engine=InnoDB;
+create table section (course_id bigint, id bigint not null auto_increment, description varchar(255), section_name varchar(255), video_file_name varchar(255), primary key (id)) engine=InnoDB;
+create table session (expires_at datetime(6), id bigint not null auto_increment, user_id bigint, token varchar(255), primary key (id)) engine=InnoDB;
+create table user (created_at datetime(6), id bigint not null auto_increment, updated_at datetime(6), avatar varchar(255), bio varchar(255), email varchar(255), name varchar(255), password varchar(255), role enum ('ADMIN','INSTRUCTOR','STUDENT'), primary key (id)) engine=InnoDB;
+alter table user add constraint UKob8kqyqqgmefl0aco34akdtpe unique (email);
+alter table course add constraint FKc0xls9e7uqc9o08ae0t2ywr6n foreign key (instructor_id) references user (id);
+alter table course_enrollment add constraint FKmdu3eh7r8fvaemtwyps4dtqoh foreign key (course_id) references course (id);
+alter table course_enrollment add constraint FKpmwpf70l4qx1oksxuog7d1n8q foreign key (user_id) references user (id);
+alter table password_reset_token add constraint FK5lwtbncug84d4ero33v3cfxvl foreign key (user_id) references user (id);
+alter table section add constraint FKoy8uc0ftpivwopwf5ptwdtar0 foreign key (course_id) references course (id);
+alter table session add constraint FK1bi1pmqjgipw7dx3j6bl37dja foreign key (user_id) references user (id);

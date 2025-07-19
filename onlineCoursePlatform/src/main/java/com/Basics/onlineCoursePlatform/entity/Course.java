@@ -13,9 +13,24 @@ import java.util.List;
 @Entity
 public class Course {
     @Id
-    @GeneratedValue
-    private Long id;
+    @GeneratedValue(strategy=GenerationType.IDENTITY)    private Long id;
+    private String title;
+    private String description;
+    private String category;
+    private BigDecimal price;
 
+    @Enumerated(EnumType.STRING)
+    private Level level;
+    @ManyToOne
+    private User instructor;
+    private Boolean isPublished;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Section> sections;
     public User getInstructor() {
         return instructor;
     }
@@ -80,8 +95,7 @@ public class Course {
         this.title = title;
     }
 
-    @ManyToOne
-    private User instructor;
+
 
     public String getCategory() {
         return category;
@@ -91,13 +105,7 @@ public class Course {
         this.category = category;
     }
 
-    private String title;
-    private String description;
-    private String category;
-    private BigDecimal price;
 
-    @Enumerated(EnumType.STRING)
-    private Level level;
 
     public Long getId() {
         return id;
@@ -107,14 +115,7 @@ public class Course {
         this.id = id;
     }
 
-    private Boolean isPublished;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
-    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Section> sections;
 
     public List<Section> getSections() {
         return sections;

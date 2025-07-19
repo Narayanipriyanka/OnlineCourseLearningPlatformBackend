@@ -1,29 +1,34 @@
 package com.Basics.onlineCoursePlatform.entity;
 
-import com.Basics.onlineCoursePlatform.model.Role;
 import jakarta.persistence.*;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Entity
 public class User {
-    public Long getId() {
-        return id;
-    }
+
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
 
     private String name;
     @Column(unique = true)
     private String email;
     private String password;
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     private String avatar;
     private String bio;
+    @Column(name = "date_of_birth")
+    private Date dateOfBirth;
     @Enumerated(EnumType.STRING)
     private Role role;
 
@@ -31,6 +36,9 @@ public class User {
     private LocalDateTime createdAt;
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+    public Long getId() {
+        return id;
+    }
     public String getAvatar() {
         return avatar;
     }
