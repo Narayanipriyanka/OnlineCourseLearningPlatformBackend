@@ -19,7 +19,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -40,7 +39,6 @@ public class CourseService {
     private ModelMapper modelMapper;
 
     // Get courses
-
     public ResponseEntity<Page<CourseDTO>> getCourses(int page, int size, String sortBy, String direction, Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findByEmail(username).orElseThrow(() -> new ForbiddenException("Access denied"));
@@ -59,7 +57,6 @@ public class CourseService {
 
 
     // Add a new course
-
     public ResponseEntity<CourseDTO> addCourse(CourseDTO courseDTO, Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findByEmail(username).orElseThrow(() -> new ForbiddenException("Access denied"));
@@ -85,7 +82,6 @@ public class CourseService {
 
         Course course = courseRepository.findById(id).orElseThrow(() -> new NotFoundException("Course not found"));
 
-        if (!course.getInstructor().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not authorized to update this course");
         }
 
@@ -106,7 +102,6 @@ public class CourseService {
 
         Course course = courseRepository.findById(id).orElseThrow(() -> new NotFoundException("Course not found"));
 
-        if (!course.getInstructor().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not authorized to delete this course");
         }
 
