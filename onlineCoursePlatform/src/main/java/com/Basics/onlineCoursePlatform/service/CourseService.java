@@ -42,6 +42,11 @@ public class CourseService {
     public ResponseEntity<Page<CourseDTO>> getCourses(int page, int size, String sortBy, String direction, Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findByEmail(username).orElseThrow(() -> new ForbiddenException("Access denied"));
+
+        if (user.getRole() != Role.STUDENT && user.getRole() != Role.INSTRUCTOR && user.getRole() != Role.ADMIN) {
+            throw new ForbiddenException("Access denied");
+        }
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.valueOf(direction.toUpperCase()), sortBy));
 
         Page<Course> courses = switch (user.getRole()) {
@@ -61,6 +66,9 @@ public class CourseService {
         String username = authentication.getName();
         User user = userRepository.findByEmail(username).orElseThrow(() -> new ForbiddenException("Access denied"));
 
+        if (!user.getRole().equals(Role.INSTRUCTOR)) {
+            throw new ForbiddenException("Only instructors can add courses");
+        }
 
         Course course = modelMapper.map(courseDTO, Course.class);
         course.setInstructor(user);
@@ -82,6 +90,7 @@ public class CourseService {
 
         Course course = courseRepository.findById(id).orElseThrow(() -> new NotFoundException("Course not found"));
 
+        if (!course.getInstructor().getId().equals(user.getId()) || !user.getRole().equals(Role.INSTRUCTOR)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not authorized to update this course");
         }
 
@@ -102,6 +111,7 @@ public class CourseService {
 
         Course course = courseRepository.findById(id).orElseThrow(() -> new NotFoundException("Course not found"));
 
+        if (!course.getInstructor().getId().equals(user.getId()) || !user.getRole().equals(Role.INSTRUCTOR)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not authorized to delete this course");
         }
 

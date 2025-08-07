@@ -1,15 +1,23 @@
 package com.Basics.onlineCoursePlatform.controller;
 
+import com.Basics.onlineCoursePlatform.DTO.CourseDTO;
 import com.Basics.onlineCoursePlatform.entity.Course;
 import com.Basics.onlineCoursePlatform.entity.Level;
 import com.Basics.onlineCoursePlatform.entity.Section;
 import com.Basics.onlineCoursePlatform.entity.User;
-import com.Basics.onlineCoursePlatform.model.Role;
+import com.Basics.onlineCoursePlatform.entity.Role;
 import com.Basics.onlineCoursePlatform.repository.CourseRepository;
 import com.Basics.onlineCoursePlatform.repository.SectionRepository;
 import com.Basics.onlineCoursePlatform.repository.UserRepository;
+import com.Basics.onlineCoursePlatform.service.CourseEnrollmentService;
+import com.Basics.onlineCoursePlatform.service.CourseService;
 import com.Basics.onlineCoursePlatform.service.JwtService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -25,168 +33,127 @@ import java.util.Optional;
 @RequestMapping("/api/courses")
 public class CourseController {
     @Autowired
-    private CourseRepository courseRepository;
-@Autowired
-private JwtService jwtService;
+    private CourseService courseService;
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private SectionRepository sectionRepository;
+    private CourseEnrollmentService courseEnrollmentService;
 
+    @Operation(summary = "get course based on pages")
     @GetMapping
-    public ResponseEntity<List<Course>> getCourses(Authentication authentication) {
-        String username = authentication.getName();
-        User user = userRepository.findByEmail(username).orElseThrow();
-        if (user.getRole().equals(Role.STUDENT)) {
-            return ResponseEntity.ok(courseRepository.findByIsPublishedTrue());
-        } else if (user.getRole().equals(Role.INSTRUCTOR)) {
-            return ResponseEntity.ok(courseRepository.findByInstructor(user));
-        } else {
-            return ResponseEntity.ok(courseRepository.findAll());
-        }
+    public ResponseEntity<Page<CourseDTO>> getCourses(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction,
+            @Parameter(hidden = true) Authentication authentication
+    ) {
+        return courseService.getCourses(page,size,sortBy,direction,authentication);
     }
 
+    @Operation(summary = "Add a new course")
     @PostMapping
     @PreAuthorize("hasRole('INSTRUCTOR')")
-    public ResponseEntity<Course> addCourse(@RequestBody Course course, Authentication authentication) {
-        String username = authentication.getName();
-        User user = userRepository.findByEmail(username).orElseThrow();
-        course.setInstructor(user);
-        course.setIsPublished(false);
-        Course savedCourse = courseRepository.save(course);
-        return ResponseEntity.ok(savedCourse);
+    public ResponseEntity<CourseDTO> addCourse(@RequestBody CourseDTO courseDTO, @Parameter(hidden = true) Authentication authentication) {
+        return courseService.addCourse(courseDTO,authentication);
     }
-
-    // Add a new course
-
-
-
-
-
-
-    private List<GrantedAuthority> getAuthorities(Role role) {
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_"+role.name()));
-        return authorities;
-    }
-
 
 
 
 
     // Update an existing course
-    @PutMapping("/{id}")
-    public ResponseEntity<Course> updateCourse(@PathVariable Long id, @RequestBody Course courseDetails, Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
-        Course course = courseRepository.findById(id).orElseThrow();
-        if (!course.getInstructor().getId().equals(user.getId()) || !user.getRole().equals(Role.INSTRUCTOR)) {
-            return ResponseEntity.status(403).build();
-        }
-        course.setTitle(courseDetails.getTitle());
-        course.setDescription(courseDetails.getDescription());
-        course.setCategory(courseDetails.getCategory());
-        course.setPrice(courseDetails.getPrice());
-        course.setLevel(courseDetails.getLevel());
-        Course updatedCourse = courseRepository.save(course);
-        return ResponseEntity.ok(updatedCourse);
-    }
 
+
+    @Operation(summary = "Update an existing course")
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('INSTRUCTOR')and @courseSecurityService.isCourseOwner(authentication.name, #id)")
+    public ResponseEntity<Course> updateCourse(@PathVariable Long id, @RequestBody CourseDTO courseDTO, @Parameter(hidden = true) Authentication authentication) {
+        return courseService.updateCourse(id,courseDTO,authentication);
+    }
 
     // Delete a course
+    @Operation(summary = "Delete a course")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCourse(@PathVariable Long id, Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
-        Course course = courseRepository.findById(id).orElseThrow();
-        if (!course.getInstructor().getId().equals(user.getId()) || !user.getRole().equals(Role.INSTRUCTOR)) {
-            return ResponseEntity.status(403).build();
-        }
-        courseRepository.delete(course);
-        return ResponseEntity.noContent().build();
+    @PreAuthorize("hasRole('INSTRUCTOR')and @courseSecurityService.isCourseOwner(authentication.name, #id)")
+    public ResponseEntity<String> deleteCourse(@PathVariable Long id, @Parameter(hidden = true) Authentication authentication) {
+        return courseService.deleteCourse(id,authentication);
     }
+
 
 
     // Publish or unpublish a course
-
-
-
     // Get instructor's own courses
+    @Operation(summary = "Get courses of an instructor")
     @GetMapping("/my-courses")
     @PreAuthorize("hasRole('INSTRUCTOR')")
-    public ResponseEntity<List<Course>> getMyCourses(Authentication authentication) {
-        String username = authentication.getName();
-        User user = userRepository.findByEmail(username).orElseThrow();
-        List<Course> courses = courseRepository.findByInstructor(user);
-        return ResponseEntity.ok(courses);
+    public ResponseEntity<List<CourseDTO>> getMyCourses(@Parameter(hidden = true) Authentication authentication) {
+        return courseService.getMyCourses(authentication);
     }
 
 
-
+    @Operation(summary = "Publish or unpublish a course")
     @PostMapping("/{id}/publish")
     @PreAuthorize("hasRole('INSTRUCTOR') and @courseSecurityService.isCourseOwner(authentication.name, #id)")
-    public ResponseEntity<Course> publishCourse(@PathVariable Long id, @RequestParam boolean publish, Authentication authentication) {
-        Course course = courseRepository.findById(id).orElseThrow();
-        course.setIsPublished(publish);
-        Course updatedCourse = courseRepository.save(course);
-        return ResponseEntity.ok(updatedCourse);
+    public ResponseEntity<Course> publishCourse(@PathVariable Long id, @RequestParam boolean publish, @Parameter(hidden = true) Authentication authentication) throws BadRequestException {
+        return courseService.publishCourse(id,publish,authentication);
     }
+
+
 
 
     // List all published courses
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Get published courses", description = "Get published courses")
     @GetMapping("/published")
-    public ResponseEntity<List<Course>> getPublishedCourses() {
-        List<Course> courses = courseRepository.findByIsPublishedTrue();
-        return ResponseEntity.ok(courses);
+    public ResponseEntity<List<CourseDTO>> getPublishedCourses() {
+        return courseService.getPublishedCourses();
     }
 
-    // Filter courses by category, price, level
-    @GetMapping("/filter")
-    public ResponseEntity<List<Course>> filterCourses(
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) Double price,
-            @RequestParam(required = false) String level) {
-        List<Course> courses = courseRepository.findAll();
-        if (category != null) {
-            courses.retainAll(courseRepository.findByCategory(category));
-        }
-        if (price != null) {
-            courses.retainAll(courseRepository.findByPriceLessThanEqual(price));
-        }
-        if (level != null) {
-            try {
-                Level levelEnum = Level.valueOf(level.toUpperCase());
-                courses.retainAll(courseRepository.findByLevel(levelEnum));
-            } catch (IllegalArgumentException e) {
-                // Handle invalid level
-                return ResponseEntity.badRequest().build();
-            }
-        }
-        return ResponseEntity.ok(courses);
+    @PostMapping("/{id}/enroll")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<String> enrollCourse(@PathVariable Long id, Authentication authentication) throws BadRequestException {
+        return courseEnrollmentService.enrollCourse(id, authentication);
     }
+
+    @GetMapping("/enrolled")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<List<CourseDTO>> getEnrolledCourses(Authentication authentication) {
+        return courseEnrollmentService.getEnrolledCourses(authentication);
+    }
+
+
+
+    // Filter courses by category, price, level
+
+    @Operation(summary = "Filter courses", description = "Filter courses by category, price, level")
+    @GetMapping("/filter")
+    public ResponseEntity<Page<CourseDTO>> filterCourses(
+            @Parameter(description = "Category") @RequestParam(required = false) String category,
+            @Parameter(description = "Price") @RequestParam(required = false) Double price,
+            @Parameter(description = "Level") @RequestParam(required = false) String level,
+            @Parameter(description = "Page number") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Direction") @RequestParam(defaultValue = "asc") String direction) {
+
+        return courseService.filterCourses(category,price,level,page,size,sortBy,direction);
+    }
+
+
 
 
     // View single course details
+    @Operation(summary = "Get course by id", description = "Get course by id")
     @GetMapping("/{id}")
-    public ResponseEntity<Course> getCourseById(@PathVariable Long id, Authentication authentication) {
-        String username = authentication.getName();
-        User user = userRepository.findByEmail(username).orElseThrow();
-        Course course = courseRepository.findById(id).orElseThrow();
-        if (user.getRole().equals(Role.STUDENT) && !course.getIsPublished()) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(course);
+    public ResponseEntity<CourseDTO> getCourseById(@PathVariable Long id, @Parameter(hidden = true) Authentication authentication) {
+        return courseService.getCourseById(id,authentication);
     }
-
-
 
     // Search functionality (title, description)
 
+    @Operation(summary= "Search courses", description = "Search courses by title or description")
     @GetMapping("/search")
-    public ResponseEntity<List<Course>> searchCourses(@RequestParam String query) {
-        String trimmedQuery = query.trim();
-        List<Course> courses = courseRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(trimmedQuery, trimmedQuery);
-        return ResponseEntity.ok(courses);
+    public ResponseEntity<List<CourseDTO>> searchCourses(@RequestParam String query) throws BadRequestException {
+        return courseService.searchCourses(query);
     }
-
 
 
 

@@ -1,4 +1,4 @@
-package com.Basics.onlineCoursePlatform.config;
+package com.Basics.onlineCoursePlatform.service;
 
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;

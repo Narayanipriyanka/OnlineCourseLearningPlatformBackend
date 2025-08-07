@@ -1,5 +1,6 @@
 package com.Basics.onlineCoursePlatform.config;
 
+import com.Basics.onlineCoursePlatform.exception.CustomAccessDeniedHandler;
 import com.Basics.onlineCoursePlatform.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.*;
@@ -42,19 +43,36 @@ public class SecurityConfig {
             }
         };
     }
-
+    @Bean
+    public CustomAccessDeniedHandler customAccessDeniedHandler() {
+        return new CustomAccessDeniedHandler();
+    }
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(customizer -> customizer.disable())
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/webjars/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,"/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE,"/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,"/api/courses").hasRole("INSTRUCTOR")
+                        .requestMatchers(HttpMethod.PUT,"/api/courses/**").hasRole("INSTRUCTOR")
+                        .requestMatchers(HttpMethod.DELETE,"/api/courses/**").hasRole("INSTRUCTOR")
+                        .requestMatchers(HttpMethod.GET,"api/courses/my-courses").hasRole("INSTRUCTOR")
+                        .requestMatchers(HttpMethod.GET,"api/courses/enrolled").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.POST,"api/courses/{id}/enroll").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.POST,"/api/courses/{courseId}/sections").hasRole("INSTRUCTOR")
+                        .requestMatchers(HttpMethod.PUT,"/api/courses/{courseId}/sections").hasRole("INSTRUCTOR")
+                        .requestMatchers(HttpMethod.DELETE,"/api/courses/{courseId}/sections").hasRole("INSTRUCTOR").anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider());
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        http .exceptionHandling(exceptionHandling -> exceptionHandling
+                .accessDeniedHandler(customAccessDeniedHandler())
+        );
         return http.build();
     }
 
