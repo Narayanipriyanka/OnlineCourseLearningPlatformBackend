@@ -31,6 +31,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/courses")
+@SecurityRequirement(name = "bearerAuth")
 public class CourseController {
     @Autowired
     private CourseService courseService;
@@ -106,13 +107,14 @@ public class CourseController {
     public ResponseEntity<List<CourseDTO>> getPublishedCourses() {
         return courseService.getPublishedCourses();
     }
-
+@Operation(summary = "enroll to a course if you are a student")
     @PostMapping("/{id}/enroll")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<String> enrollCourse(@PathVariable Long id, Authentication authentication) throws BadRequestException {
         return courseEnrollmentService.enrollCourse(id, authentication);
     }
 
+    @Operation(summary = "get enrolled courses of me")
     @GetMapping("/enrolled")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<List<CourseDTO>> getEnrolledCourses(Authentication authentication) {
