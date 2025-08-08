@@ -4,6 +4,7 @@ import com.Basics.onlineCoursePlatform.entity.Level;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public class CourseDTO {
 
@@ -17,8 +18,24 @@ public class CourseDTO {
     public long getId() {
         return id;
     }
+    private Double ratings;
+    private List<String> reviews;
 
+    public Double getRatings() {
+        return ratings;
+    }
 
+    public void setRatings(Double ratings) {
+        this.ratings = ratings;
+    }
+
+    public List<String> getReviews() {
+        return reviews;
+    }
+
+    public void setReviews(List<String> reviews) {
+        this.reviews = reviews;
+    }
 
     public String getTitle() {
         return title;

@@ -1,17 +1,11 @@
 package com.Basics.onlineCoursePlatform.controller;
 
 import com.Basics.onlineCoursePlatform.DTO.CourseDTO;
+import com.Basics.onlineCoursePlatform.DTO.CourseRatingDTO;
 import com.Basics.onlineCoursePlatform.entity.Course;
-import com.Basics.onlineCoursePlatform.entity.Level;
-import com.Basics.onlineCoursePlatform.entity.Section;
-import com.Basics.onlineCoursePlatform.entity.User;
-import com.Basics.onlineCoursePlatform.entity.Role;
-import com.Basics.onlineCoursePlatform.repository.CourseRepository;
-import com.Basics.onlineCoursePlatform.repository.SectionRepository;
-import com.Basics.onlineCoursePlatform.repository.UserRepository;
 import com.Basics.onlineCoursePlatform.service.CourseEnrollmentService;
+import com.Basics.onlineCoursePlatform.service.CourseRatingService;
 import com.Basics.onlineCoursePlatform.service.CourseService;
-import com.Basics.onlineCoursePlatform.service.JwtService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -21,13 +15,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -37,7 +27,8 @@ public class CourseController {
     private CourseService courseService;
     @Autowired
     private CourseEnrollmentService courseEnrollmentService;
-
+    @Autowired
+    private CourseRatingService courseRatingService;
     @Operation(summary = "get course based on pages")
     @GetMapping
     public ResponseEntity<Page<CourseDTO>> getCourses(
@@ -156,6 +147,18 @@ public class CourseController {
     public ResponseEntity<List<CourseDTO>> searchCourses(@RequestParam String query) throws BadRequestException {
         return courseService.searchCourses(query);
     }
+    @Operation(summary = "Add a rating and review")
+    @PostMapping("/{id}/rating")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<String> addRatingAndReview(@PathVariable Long id, @RequestParam Integer rating, @RequestParam String review, Authentication authentication) throws BadRequestException {
+        return courseRatingService.addRatingAndReview(id, rating, review, authentication);
+    }
+@Operation(summary = "get ratings & reviews of a course")
+    @GetMapping("/{id}/ratings")
+    public ResponseEntity<List<CourseRatingDTO>> getCourseRatings(@PathVariable Long id) {
+        return courseRatingService.getCourseRatings(id);
+    }
+
 
 
 
