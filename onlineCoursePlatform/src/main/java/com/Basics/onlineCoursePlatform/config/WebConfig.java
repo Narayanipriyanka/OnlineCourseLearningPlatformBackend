@@ -2,10 +2,11 @@ package com.Basics.onlineCoursePlatform.config;
 
 
 import com.Basics.onlineCoursePlatform.DTO.CourseDTO;
-import com.Basics.onlineCoursePlatform.DTO.CourseRatingDTO;
-import com.Basics.onlineCoursePlatform.DTO.UserDTO;
+
+import com.Basics.onlineCoursePlatform.DTO.ReviewDTO;
 import com.Basics.onlineCoursePlatform.entity.Course;
-import com.Basics.onlineCoursePlatform.entity.CourseRating;
+
+import com.Basics.onlineCoursePlatform.entity.Review;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,20 +21,20 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.upload-dir}")
     private String uploadDir;
     @Bean
+
     public ModelMapper modelMapper() {
         ModelMapper modelMapper = new ModelMapper();
         modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
         modelMapper.typeMap(CourseDTO.class, Course.class)
                 .addMappings(mapper -> mapper.skip(Course::setId));
-        modelMapper.createTypeMap(CourseRating.class, CourseRatingDTO.class)
-                .addMappings(mapper -> mapper.map(src -> src.getId(), CourseRatingDTO::setId))
-                .addMappings(mapper -> mapper.map(src -> src.getCourse().getId(), CourseRatingDTO::setCourseId))
-                .addMappings(mapper -> mapper.map(src -> src.getUser().getId(), CourseRatingDTO::setUserId))
-                .addMappings(mapper -> mapper.map(src -> src.getUser().getName(), CourseRatingDTO::setUserName));
-
+        modelMapper.createTypeMap(Review.class, ReviewDTO.class)
+                .addMappings(mapper -> mapper.map(src -> src.getId(), ReviewDTO::setId))
+                .addMappings(mapper -> mapper.map(src -> src.getCourse().getId(), ReviewDTO::setCourseId))
+                .addMappings(mapper -> mapper.map(src -> src.getUser().getId(), ReviewDTO::setUserId))
+                .addMappings(mapper -> mapper.map(src -> src.getUser().getName(), ReviewDTO::setUserName));
         return modelMapper;
-
     }
+
 
 
 

@@ -1,11 +1,12 @@
 package com.Basics.onlineCoursePlatform.service;
 
 import com.Basics.onlineCoursePlatform.DTO.CourseDTO;
+import com.Basics.onlineCoursePlatform.DTO.ReviewDTO;
 import com.Basics.onlineCoursePlatform.entity.*;
 import com.Basics.onlineCoursePlatform.exception.ForbiddenException;
 import com.Basics.onlineCoursePlatform.exception.NotFoundException;
-import com.Basics.onlineCoursePlatform.repository.CourseRatingRepository;
 import com.Basics.onlineCoursePlatform.repository.CourseRepository;
+import com.Basics.onlineCoursePlatform.repository.ReviewRepository;
 import com.Basics.onlineCoursePlatform.repository.UserRepository;
 import org.apache.coyote.BadRequestException;
 import org.modelmapper.ModelMapper;
@@ -32,19 +33,17 @@ public class CourseService {
 
     @Autowired
     private UserRepository userRepository;
-
+    @Autowired
+    private ReviewRepository reviewRepository;
     @Autowired
     private ModelMapper modelMapper;
-    @Autowired
-    private CourseRatingRepository courseRatingRepository;
+
 
     public ResponseEntity<Page<CourseDTO>> getCourses(int page, int size, String sortBy, String direction, Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findByEmail(username).orElseThrow(() -> new ForbiddenException("Access denied"));
-        if (user.getRole() != Role.STUDENT && user.getRole() != Role.INSTRUCTOR && user.getRole() != Role.ADMIN) {
-            throw new ForbiddenException("Access denied");
-        }
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.valueOf(direction.toUpperCase()), sortBy));
+
         Page<Course> courses = switch (user.getRole()) {
             case STUDENT -> courseRepository.findByIsPublishedTrue(pageable);
             case INSTRUCTOR -> courseRepository.findByInstructor(user, pageable);
@@ -53,14 +52,32 @@ public class CourseService {
         };
         Page<CourseDTO> courseDTOs = courses.map(course -> {
             CourseDTO courseDTO = modelMapper.map(course, CourseDTO.class);
-            List<CourseRating> ratings = courseRatingRepository.findByCourse(course);
-            courseDTO.setRatings(ratings.stream().mapToInt(rating -> rating.getRating()).average().orElse(0.0));
-            courseDTO.setReviews(ratings.stream().map(CourseRating::getReview).collect(Collectors.toList()));
+            List<Review> reviews = reviewRepository.findByCourse(course);
+            if (!reviews.isEmpty()) {
+                Double averageRating = reviews.stream().mapToDouble(Review::getRating).average().orElse(0.0);
+                courseDTO.setRatings(averageRating);
+            } else {
+                courseDTO.setRatings(0.0);
+            }
+            List<ReviewDTO> reviewDTOs = reviews.stream()
+                    .map(review -> {
+                        ReviewDTO reviewDTO = new ReviewDTO();
+                        reviewDTO.setId(review.getId());
+                        reviewDTO.setCourseId(review.getCourse().getId());
+                        reviewDTO.setUserId(review.getUser().getId());
+                        reviewDTO.setUserName(review.getUser().getName());
+                        reviewDTO.setRating(review.getRating().doubleValue());
+                        reviewDTO.setReview(review.getReview());
+                        return reviewDTO;
+                    })
+                    .collect(Collectors.toList());
+            courseDTO.setReviews(reviewDTOs);
             return courseDTO;
         });
+
+
         return ResponseEntity.ok(courseDTOs);
     }
-
 
 
 

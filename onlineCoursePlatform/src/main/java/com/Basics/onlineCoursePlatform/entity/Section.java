@@ -14,6 +14,20 @@ public class Section {
     private String sectionName;
     private String description;
     private String videoFileName;
+    private Boolean isCompleted = false;
+
+    public Boolean getIsCompleted() {
+        return isCompleted;
+    }
+
+    public void setIsCompleted(Boolean completed) {
+        isCompleted = completed;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "course_id")
@@ -34,6 +48,15 @@ public class Section {
     public void setSectionName(String sectionName) {
         this.sectionName = sectionName;
     }
+    private Double videoDuration;
+
+    public Double getVideoDuration() {
+        return videoDuration;
+    }
+
+    public void setVideoDuration(Double videoDuration) {
+        this.videoDuration = videoDuration;
+    }
 
 
     public String getVideoFileName() {
@@ -47,7 +70,7 @@ public class Section {
                 ", course=" + course +
                 ", sectionName='" + sectionName + '\'' +
                 ", description='" + description + '\'' +
-                ", videoUrl='" + videoFileName + '\'' +
+                ", videoFileName='" + videoFileName + '\'' +
                 '}';
     }
 

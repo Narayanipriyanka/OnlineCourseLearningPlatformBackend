@@ -1,11 +1,11 @@
 package com.Basics.onlineCoursePlatform.controller;
 
 import com.Basics.onlineCoursePlatform.DTO.CourseDTO;
-import com.Basics.onlineCoursePlatform.DTO.CourseRatingDTO;
 import com.Basics.onlineCoursePlatform.entity.Course;
 import com.Basics.onlineCoursePlatform.service.CourseEnrollmentService;
-import com.Basics.onlineCoursePlatform.service.CourseRatingService;
+import com.Basics.onlineCoursePlatform.service.CourseProgressService;
 import com.Basics.onlineCoursePlatform.service.CourseService;
+import com.Basics.onlineCoursePlatform.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -27,8 +27,11 @@ public class CourseController {
     private CourseService courseService;
     @Autowired
     private CourseEnrollmentService courseEnrollmentService;
+  @Autowired
+  private ReviewService reviewService;
     @Autowired
-    private CourseRatingService courseRatingService;
+    private CourseProgressService courseProgressService;
+
     @Operation(summary = "get course based on pages")
     @GetMapping
     public ResponseEntity<Page<CourseDTO>> getCourses(
@@ -98,19 +101,6 @@ public class CourseController {
     public ResponseEntity<List<CourseDTO>> getPublishedCourses() {
         return courseService.getPublishedCourses();
     }
-@Operation(summary = "enroll to a course if you are a student")
-    @PostMapping("/{id}/enroll")
-    @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<String> enrollCourse(@PathVariable Long id, Authentication authentication) throws BadRequestException {
-        return courseEnrollmentService.enrollCourse(id, authentication);
-    }
-
-    @Operation(summary = "get enrolled courses of me")
-    @GetMapping("/enrolled")
-    @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<List<CourseDTO>> getEnrolledCourses(Authentication authentication) {
-        return courseEnrollmentService.getEnrolledCourses(authentication);
-    }
 
 
 
@@ -147,18 +137,6 @@ public class CourseController {
     public ResponseEntity<List<CourseDTO>> searchCourses(@RequestParam String query) throws BadRequestException {
         return courseService.searchCourses(query);
     }
-    @Operation(summary = "Add a rating and review")
-    @PostMapping("/{id}/rating")
-    @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<String> addRatingAndReview(@PathVariable Long id, @RequestParam Integer rating, @RequestParam String review, Authentication authentication) throws BadRequestException {
-        return courseRatingService.addRatingAndReview(id, rating, review, authentication);
-    }
-@Operation(summary = "get ratings & reviews of a course")
-    @GetMapping("/{id}/ratings")
-    public ResponseEntity<List<CourseRatingDTO>> getCourseRatings(@PathVariable Long id) {
-        return courseRatingService.getCourseRatings(id);
-    }
-
 
 
 

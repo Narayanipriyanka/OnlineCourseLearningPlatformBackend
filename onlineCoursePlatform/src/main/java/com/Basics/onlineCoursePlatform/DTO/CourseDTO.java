@@ -19,7 +19,7 @@ public class CourseDTO {
         return id;
     }
     private Double ratings;
-    private List<String> reviews;
+    private List<ReviewDTO> reviews;
 
     public Double getRatings() {
         return ratings;
@@ -29,11 +29,11 @@ public class CourseDTO {
         this.ratings = ratings;
     }
 
-    public List<String> getReviews() {
+    public List<ReviewDTO> getReviews() {
         return reviews;
     }
 
-    public void setReviews(List<String> reviews) {
+    public void setReviews(List<ReviewDTO> reviews) {
         this.reviews = reviews;
     }
 

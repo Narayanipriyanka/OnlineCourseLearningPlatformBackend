@@ -1,0 +1,1 @@
+ALTER TABLE section ADD COLUMN is_completed BIT DEFAULT 0;
