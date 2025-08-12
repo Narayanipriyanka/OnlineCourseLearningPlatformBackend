@@ -74,6 +74,13 @@ public class AdminController {
         adminService.deleteInstructor(id, authentication);
         return ResponseEntity.ok("Instructor deleted successfully");
     }
+    @Operation(summary = "Delete a student by ID")
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> deleteStudent(@PathVariable Long id) {
+        adminService.deleteStudent(id);
+        return ResponseEntity.ok("Student deleted successfully");
+    }
 
 
 }

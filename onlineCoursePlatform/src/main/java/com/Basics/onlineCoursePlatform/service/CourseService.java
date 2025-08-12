@@ -37,7 +37,8 @@ public class CourseService {
     private ReviewRepository reviewRepository;
     @Autowired
     private ModelMapper modelMapper;
-
+@Autowired
+private EmailService emailService;
 
     public ResponseEntity<Page<CourseDTO>> getCourses(int page, int size, String sortBy, String direction, Authentication authentication) {
         String username = authentication.getName();
@@ -94,6 +95,7 @@ public class CourseService {
         course.setInstructor(user);
         course.setIsPublished(false);
         Course savedCourse = courseRepository.save(course);
+        emailService.sendEmailToStudents(savedCourse, "add");
 
         return ResponseEntity.ok(modelMapper.map(savedCourse, CourseDTO.class));
     }
@@ -116,6 +118,7 @@ public class CourseService {
 
         modelMapper.map(courseDTO, course);
         Course updatedCourse = courseRepository.save(course);
+        emailService.sendEmailToStudents(updatedCourse, "update");
 
         return ResponseEntity.ok(updatedCourse);
     }
@@ -147,6 +150,7 @@ public class CourseService {
 
         course.setIsPublished(publish);
         Course updatedCourse = courseRepository.save(course);
+        emailService.sendEmailToStudents(updatedCourse, "publish");
 
         return ResponseEntity.ok(updatedCourse);
     }

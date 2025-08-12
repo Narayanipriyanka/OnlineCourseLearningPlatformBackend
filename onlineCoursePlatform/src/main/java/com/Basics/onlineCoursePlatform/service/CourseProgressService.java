@@ -31,6 +31,10 @@ public class CourseProgressService {
     private UserRepository userRepository;
 
     @Autowired
+    private SectionService sectionService;
+
+
+    @Autowired
     private SectionRepository sectionRepository;
     @Autowired
     private ModelMapper modelMapper;
@@ -54,46 +58,16 @@ public class CourseProgressService {
         return ResponseEntity.ok(courseProgressDTO);
     }
 
-    public CourseProgress getCourseProgress(User user, Course course) {
-        return courseProgressRepository.findByUserAndCourse(user, course).orElseGet(() -> {
-            CourseProgress newCourseProgress = new CourseProgress();
-            newCourseProgress.setUser(user);
-            newCourseProgress.setCourse(course);
-            newCourseProgress.setCompletedSections(new ArrayList<>());
-            newCourseProgress.setProgressPercentage(0.0);
-            return courseProgressRepository.save(newCourseProgress);
-        });
-    }
 
 
 
 
 
-    public void updateCourseProgress(Long courseId, Long sectionId, Authentication authentication) {
-        String username = authentication.getName();
-        User user = userRepository.findByEmail(username).orElseThrow();
-        Course course = courseRepository.findById(courseId).orElseThrow(() -> new NotFoundException("Course not found"));
-        Section section = sectionRepository.findById(sectionId).orElseThrow(() -> new NotFoundException("Section not found"));
-        CourseProgress courseProgress = courseProgressRepository.findByUserAndCourse(user, course).orElseGet(() -> {
-            CourseProgress newCourseProgress = new CourseProgress();
-            newCourseProgress.setUser(user);
-            newCourseProgress.setCourse(course);
-            newCourseProgress.setCompletedSections(new ArrayList<>());
-            newCourseProgress.setProgressPercentage(0.0);
-            return courseProgressRepository.save(newCourseProgress);
-        });
-        if (!courseProgress.getCompletedSections().contains(section)) {
-            courseProgress.getCompletedSections().add(section);
-            double progressPercentage = calculateProgressPercentage(course, courseProgress.getCompletedSections());
-            courseProgress.setProgressPercentage(progressPercentage);
-            courseProgressRepository.save(courseProgress);
-        }
-    }
 
-    private double calculateProgressPercentage(Course course, List<Section> completedSections) {
-        List<Section> allSections = sectionRepository.findByCourse(course);
-        return ((double) completedSections.size() / allSections.size()) * 100;
-    }
+
+
+
+
     public void markSectionAsCompleted(Long courseId, Long sectionId, String username) {
         User user = userRepository.findByEmail(username).orElseThrow();
         Course course = courseRepository.findById(courseId).orElseThrow();
@@ -109,30 +83,5 @@ public class CourseProgressService {
         courseProgress.setProgressPercentage(progress);
         courseProgressRepository.save(courseProgress);
     }
-    public void updateCourseProgress(CourseProgress courseProgress, Section section, Double progress) {
-        List<Section> sections = sectionRepository.findByCourseId(courseProgress.getCourse().getId());
-        double totalProgress = 0;
-        for (Section s : sections) {
-            if (s.getId().equals(section.getId())) {
-                totalProgress += progress;
-            } else {
-                if (courseProgress.getCompletedSections().contains(s)) {
-                    totalProgress += 100;
-                } else {
-                    totalProgress += 0;
-                }
-            }
-        }
-        double overallProgress = totalProgress / sections.size();
-        courseProgress.setProgressPercentage(overallProgress);
-        if (progress == 100) {
-            if (!courseProgress.getCompletedSections().contains(section)) {
-                courseProgress.getCompletedSections().add(section);
-            }
-        }
-        courseProgressRepository.save(courseProgress);
-    }
-
-
 
 }

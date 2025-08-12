@@ -129,6 +129,14 @@ public class AdminService {
         String username = authentication.getName();
         return userRepository.findByEmail(username).orElseThrow(() -> new ForbiddenException("No data found"));
     }
+    public void deleteStudent(Long id) {
+        User student = userRepository.findById(id).orElseThrow(() -> new NotFoundException("Student not found"));
+        if (!student.getRole().equals(Role.STUDENT)) {
+            throw new ForbiddenException("Only students can be deleted");
+        }
+        userRepository.delete(student);
+    }
+
 }
 
 

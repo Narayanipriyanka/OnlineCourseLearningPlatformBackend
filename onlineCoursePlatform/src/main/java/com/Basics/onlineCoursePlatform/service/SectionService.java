@@ -4,21 +4,22 @@ import com.Basics.onlineCoursePlatform.DTO.SectionDTO;
 import com.Basics.onlineCoursePlatform.entity.*;
 import com.Basics.onlineCoursePlatform.exception.ForbiddenException;
 import com.Basics.onlineCoursePlatform.exception.NotFoundException;
-import com.Basics.onlineCoursePlatform.repository.CourseProgressRepository;
-import com.Basics.onlineCoursePlatform.repository.CourseRepository;
-import com.Basics.onlineCoursePlatform.repository.SectionRepository;
-import com.Basics.onlineCoursePlatform.repository.UserRepository;
+import com.Basics.onlineCoursePlatform.repository.*;
 import org.apache.coyote.BadRequestException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,15 +34,14 @@ public class SectionService {
 
     @Autowired
     private UserRepository userRepository;
-
+@Autowired
+private SectionProgressRepository sectionProgressRepository;
     @Autowired
     private FileStorageService fileStorageService;
 @Autowired
 private CourseProgressRepository courseProgressRepository;
     @Autowired
     private ModelMapper modelMapper;
-    @Autowired
-    private CourseProgressService courseProgressService;
 
     public ResponseEntity<List<SectionDTO>> getSections(Long courseId, Principal principal) {
         Course course = courseRepository.findById(courseId).orElseThrow(() -> new NotFoundException("Course not found"));
@@ -98,37 +98,41 @@ private CourseProgressRepository courseProgressRepository;
         User user = userRepository.findByEmail(principal.getName()).orElseThrow();
         Course course = courseRepository.findById(courseId).orElseThrow();
         Section section = sectionRepository.findById(sectionId).orElseThrow();
-        updateSectionProgressLogic(user, course, section, progress);
+        CourseProgress courseProgress = courseProgressRepository.findByUserAndCourse(user, course).orElseGet(() -> {
+            CourseProgress newCourseProgress = new CourseProgress();
+            newCourseProgress.setUser(user);
+            newCourseProgress.setCourse(course);
+            newCourseProgress.setCompletedSections(new ArrayList<>());
+            newCourseProgress.setProgressPercentage(0.0);
+            return courseProgressRepository.save(newCourseProgress);
+        });
+        SectionProgress sectionProgress = sectionProgressRepository.findByCourseProgressAndSection(courseProgress, section).orElseGet(() -> {
+            SectionProgress newSectionProgress = new SectionProgress();
+            newSectionProgress.setCourseProgress(courseProgress);
+            newSectionProgress.setSection(section);
+            newSectionProgress.setProgressPercentage(0.0);
+            return sectionProgressRepository.save(newSectionProgress);
+        });
+        sectionProgress.setProgressPercentage(progress);
+        sectionProgressRepository.save(sectionProgress);
+        double overallProgress = calculateOverallProgress(courseProgress);
+        courseProgress.setProgressPercentage(overallProgress);
+        courseProgressRepository.save(courseProgress);
         return ResponseEntity.ok("Progress updated successfully");
     }
-    private void updateSectionProgressLogic(User user, Course course, Section section, Double progress) {
-        CourseProgress courseProgress = courseProgressService.getCourseProgress(user, course);
-        if (courseProgress != null) {
-            List<Section> sections = sectionRepository.findByCourseId(course.getId());
-            double totalProgress = 0;
-            for (Section s : sections) {
-                if (s.getId().equals(section.getId())) {
-                    totalProgress += progress;
-                } else {
-                    CourseProgress existingProgress = courseProgressService.getCourseProgress(user, course);
-                    List<Section> completedSections = existingProgress.getCompletedSections();
-                    if (completedSections.contains(s)) {
-                        totalProgress += 100;
-                    } else {
-                        totalProgress += 0;
-                    }
-                }
-            }
-            double overallProgress = totalProgress / sections.size();
-            courseProgress.setProgressPercentage(overallProgress);
-            if (progress == 100) {
-                if (courseProgress.getCompletedSections() != null && !courseProgress.getCompletedSections().contains(section)) {
-                    courseProgress.getCompletedSections().add(section);
-                }
-            }
-            courseProgressRepository.save(courseProgress);
+
+
+
+    private double calculateOverallProgress(CourseProgress courseProgress) {
+        List<SectionProgress> sectionProgresses = sectionProgressRepository.findByCourseProgress(courseProgress);
+        double totalProgress = 0;
+        for (SectionProgress sectionProgress : sectionProgresses) {
+            totalProgress += sectionProgress.getProgressPercentage();
         }
+        return totalProgress / sectionProgresses.size();
     }
+
+
 
 
 
@@ -174,14 +178,54 @@ private CourseProgressRepository courseProgressRepository;
         sectionRepository.delete(section);
         return ResponseEntity.ok("Section deleted successfully");
     }
+
+
     public ResponseEntity<SectionDTO> getSection(Long courseId, Long sectionId, Authentication authentication) throws BadRequestException {
         Section section = sectionRepository.findById(sectionId).orElseThrow(() -> new NotFoundException("Section not found"));
         if (!section.getCourse().getId().equals(courseId)) {
             throw new BadRequestException("Section does not belong to the course");
         }
-        courseProgressService.updateCourseProgress(courseId, sectionId, authentication);
+        updateCourseProgress(courseId, sectionId, authentication);
         SectionDTO sectionDTO = modelMapper.map(section, SectionDTO.class);
         return ResponseEntity.ok(sectionDTO);
+    }
+
+    private void updateCourseProgress(Long courseId, Long sectionId, Authentication authentication) {
+        String username = authentication.getName();
+        User user = userRepository.findByEmail(username).orElseThrow();
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new NotFoundException("Course not found"));
+        Section section = sectionRepository.findById(sectionId).orElseThrow(() -> new NotFoundException("Section not found"));
+        CourseProgress courseProgress = courseProgressRepository.findByUserAndCourse(user, course).orElseGet(() -> {
+            CourseProgress newCourseProgress = new CourseProgress();
+            newCourseProgress.setUser(user);
+            newCourseProgress.setCourse(course);
+            newCourseProgress.setCompletedSections(new ArrayList<>());
+            newCourseProgress.setProgressPercentage(0.0);
+            return courseProgressRepository.save(newCourseProgress);
+        });
+        if (!courseProgress.getCompletedSections().contains(section)) {
+            courseProgress.getCompletedSections().add(section);
+            double progressPercentage = calculateProgressPercentage(course, courseProgress.getCompletedSections());
+            courseProgress.setProgressPercentage(progressPercentage);
+            courseProgressRepository.save(courseProgress);
+        }
+    }
+
+    private double calculateProgressPercentage(Course course, List<Section> completedSections) {
+        List<Section> allSections = sectionRepository.findByCourse(course);
+        return ((double) completedSections.size() / allSections.size()) * 100;
+    }
+    public ResponseEntity<InputStreamResource> streamVideo(Long courseId, Long sectionId, Authentication authentication) throws IOException {
+        SectionDTO sectionDTO = getSection(courseId, sectionId, authentication).getBody();
+        String uploadDir = System.getProperty("user.dir") + "uploads/videos/";
+        File videoFile = new File(uploadDir + sectionDTO.getVideoFileName());
+        if (!videoFile.exists()) {
+            return ResponseEntity.notFound().build();
+        }
+        InputStreamResource resource = new InputStreamResource(new FileInputStream(videoFile));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("video/mp4"))
+                .body(resource);
     }
 
 

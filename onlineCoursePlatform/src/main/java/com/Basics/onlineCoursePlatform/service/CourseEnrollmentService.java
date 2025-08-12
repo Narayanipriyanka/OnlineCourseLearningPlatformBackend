@@ -3,7 +3,6 @@ package com.Basics.onlineCoursePlatform.service;
 import com.Basics.onlineCoursePlatform.DTO.CourseDTO;
 import com.Basics.onlineCoursePlatform.DTO.ReviewDTO;
 import com.Basics.onlineCoursePlatform.entity.*;
-import com.Basics.onlineCoursePlatform.exception.ForbiddenException;
 import com.Basics.onlineCoursePlatform.exception.NotFoundException;
 import com.Basics.onlineCoursePlatform.repository.CourseEnrollmentRepository;
 import com.Basics.onlineCoursePlatform.repository.CourseProgressRepository;
@@ -72,18 +71,8 @@ private ModelMapper modelMapper;
                 .map(enrollment -> {
                     CourseDTO courseDTO = modelMapper.map(enrollment.getCourse(), CourseDTO.class);
                     Double averageRating = reviewService.getAverageRating(enrollment.getCourse().getId());
-                    List<Review> reviews = reviewService.getReviewList(enrollment.getCourse().getId());
-                    List<ReviewDTO> reviewDTOs = reviews.stream()
-                            .map(review -> {
-                                ReviewDTO reviewDTO = new ReviewDTO();
-                                reviewDTO.setId(review.getId());
-                                reviewDTO.setCourseId(review.getCourse().getId());
-                                reviewDTO.setUserId(review.getUser().getId());
-                                reviewDTO.setUserName(review.getUser().getName());
-                                reviewDTO.setRating(review.getRating());
-                                reviewDTO.setReview(review.getReview());
-                                return reviewDTO;
-                            })
+                    List<ReviewDTO> reviewDTOs = reviewService.getReviewList(enrollment.getCourse().getId()).stream()
+                            .map(review -> modelMapper.map(review, ReviewDTO.class))
                             .collect(Collectors.toList());
                     courseDTO.setRatings(averageRating);
                     courseDTO.setReviews(reviewDTOs);
@@ -92,6 +81,9 @@ private ModelMapper modelMapper;
                 .collect(Collectors.toList());
         return ResponseEntity.ok(courses);
     }
+
+
+
 
 
 
