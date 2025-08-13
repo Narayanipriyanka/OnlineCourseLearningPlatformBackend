@@ -4,7 +4,18 @@ public class SectionDTO {
     private Long id;
     private String sectionName;
     private String description;
-private String videoFileName;
+
+    public String getDocumentFileName() {
+        return documentFileName;
+    }
+
+    public void setDocumentFileName(String documentFileName) {
+        this.documentFileName = documentFileName;
+    }
+
+    private String videoFileName;
+    private String documentFileName;
+
     public Long getId() {
         return id;
     }

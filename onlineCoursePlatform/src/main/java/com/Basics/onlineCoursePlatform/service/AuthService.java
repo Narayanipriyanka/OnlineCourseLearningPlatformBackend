@@ -78,6 +78,7 @@ public class AuthService {
             avatarFile.transferTo(new File(uploadDir + avatarFile.getOriginalFilename()));
 
             User savedUser = userRepository.save(user);
+            emailService.sendRegistrationEmail(user);
 
             return ResponseEntity.ok(savedUser);
         } catch (EmailAlreadyExistsException e) {
@@ -127,6 +128,7 @@ public class AuthService {
         userRepository.save(user);
         passwordResetToken.setIsUsed(true);
         passwordResetTokenRepository.save(passwordResetToken);
+        emailService.sendPasswordResetEmail(user);
         return ResponseEntity.ok("Password reset successfully");
     }
 
@@ -142,6 +144,8 @@ public class AuthService {
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        emailService.sendPasswordChangeEmail(user);
+
         return ResponseEntity.ok("Password changed successfully");
     }
 

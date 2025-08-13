@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,14 +16,24 @@ public class FileStorageService {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    public String uploadFile(MultipartFile file) {
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        Path filePath = Paths.get(uploadDir + fileName);
-        try {
-            Files.copy(file.getInputStream(), filePath);
-        } catch (IOException e) {
-            // handle exception
+    public String uploadVideoFile(MultipartFile file) throws IOException {
+        String uploadDir = System.getProperty("user.dir") + "/uploads/videos/";
+        return uploadFile(file, uploadDir);
+    }
+
+    public String uploadDocumentFile(MultipartFile file) throws IOException {
+        String uploadDir = System.getProperty("user.dir") + "/uploads/documents/";
+        return uploadFile(file, uploadDir);
+    }
+
+    private String uploadFile(MultipartFile file, String uploadDir) throws IOException {
+        File directory = new File(uploadDir);
+        if (!directory.exists()) {
+            directory.mkdirs();
         }
+        String fileName = file.getOriginalFilename();
+        file.transferTo(new File(uploadDir + fileName));
         return fileName;
     }
+
 }

@@ -15,6 +15,15 @@ public class Section {
     private String description;
     private String videoFileName;
     private Boolean isCompleted = false;
+    private String documentFileName;
+
+    public String getDocumentFileName() {
+        return documentFileName;
+    }
+
+    public void setDocumentFileName(String documentFileName) {
+        this.documentFileName = documentFileName;
+    }
 
     public Boolean getIsCompleted() {
         return isCompleted;

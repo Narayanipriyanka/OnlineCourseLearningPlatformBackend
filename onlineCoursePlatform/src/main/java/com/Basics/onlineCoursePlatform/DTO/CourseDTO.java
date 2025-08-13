@@ -7,8 +7,10 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public class CourseDTO {
+    public void setId(long id) {
+        this.id = id;
+    }
 
-    @JsonIgnore
     private long id;
     private String title;
     private String description;

@@ -69,31 +69,50 @@ private CourseProgressRepository courseProgressRepository;
 
 
     }
-    public ResponseEntity<SectionDTO> addSection(Long courseId, String sectionName, String description, MultipartFile videoFile, Principal principal) throws IOException {
+    public ResponseEntity<SectionDTO> addSection(Long courseId, String sectionName, String description, MultipartFile file, Principal principal) throws IOException {
         User user = userRepository.findByEmail(principal.getName()).orElseThrow(() -> new ForbiddenException("Access denied"));
         Course course = courseRepository.findById(courseId).orElseThrow(() -> new NotFoundException("Course not found"));
         if (!course.getInstructor().getId().equals(user.getId())) {
             throw new ForbiddenException("Access denied");
         }
-        if (videoFile.isEmpty()) {
-            throw new BadRequestException("Video file is required");
+        if (file.isEmpty()) {
+            throw new BadRequestException("File is required");
         }
         Section section = new Section();
         section.setCourse(course);
         section.setSectionName(sectionName);
         section.setDescription(description);
-        String uploadDir =System.getProperty("user.dir")+"uploads/videos/";
-        File directory = new File(uploadDir);
-        if (!directory.exists()) {
-            directory.mkdirs();
+        String fileType = getFileType(file);
+        if (fileType.equals("video")) {
+            String videoFileName = fileStorageService.uploadVideoFile(file);
+            section.setVideoFileName(videoFileName);
+        } else if (fileType.equals("document")) {
+            String documentFileName = fileStorageService.uploadDocumentFile(file);
+            section.setDocumentFileName(documentFileName);
+        } else {
+            throw new BadRequestException("Only video, PDF, PPT, and Word files are allowed");
         }
-        String videoFileName = videoFile.getOriginalFilename();
-        videoFile.transferTo(new File(uploadDir + videoFileName));
-        section.setVideoFileName(videoFileName);
         Section savedSection = sectionRepository.save(section);
         SectionDTO sectionDTO = modelMapper.map(savedSection, SectionDTO.class);
         return ResponseEntity.ok(sectionDTO);
     }
+
+    private String getFileType(MultipartFile file) {
+        String mimeType = file.getContentType();
+        if (mimeType.startsWith("video/")) {
+            return "video";
+        } else if (mimeType.equals("application/pdf") ||
+                mimeType.equals("application/msword") ||
+                mimeType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+                mimeType.equals("application/vnd.ms-powerpoint") ||
+                mimeType.equals("application/vnd.openxmlformats-officedocument.presentationml.presentation")) {
+            return "document";
+        } else {
+            return "unknown";
+        }
+    }
+
+
     public ResponseEntity<String> updateSectionProgress(Long courseId, Long sectionId, Double progress, Principal principal) {
         User user = userRepository.findByEmail(principal.getName()).orElseThrow();
         Course course = courseRepository.findById(courseId).orElseThrow();
@@ -131,39 +150,40 @@ private CourseProgressRepository courseProgressRepository;
         }
         return totalProgress / sectionProgresses.size();
     }
-
-
-
-
-
-
-
-
-    public ResponseEntity<SectionDTO> updateSection(Long courseId, Long sectionId, SectionDTO sectionDTO, MultipartFile videoFile, Principal principal) throws IOException {
+    public ResponseEntity<SectionDTO> updateSection(Long courseId, Long sectionId, SectionDTO sectionDTO, MultipartFile file, Principal principal) throws IOException {
         User user = userRepository.findByEmail(principal.getName()).orElseThrow(() -> new ForbiddenException("Access denied"));
         Course course = courseRepository.findById(courseId).orElseThrow(() -> new NotFoundException("Course not found"));
-
         if (!course.getInstructor().getId().equals(user.getId())) {
             throw new ForbiddenException("Access denied");
         }
-
         Section section = sectionRepository.findById(sectionId).orElseThrow(() -> new NotFoundException("Section not found"));
-
         if (!section.getCourse().getId().equals(courseId)) {
             throw new BadRequestException("Section does not belong to the course");
         }
-
         modelMapper.map(sectionDTO, section);
-
-        if (videoFile != null && !videoFile.isEmpty()) {
-            String videoFileName = fileStorageService.uploadFile(videoFile);
-            section.setVideoFileName(videoFileName);
+        if (file != null && !file.isEmpty()) {
+            String fileType = getFileType(file);
+            if (fileType.equals("video")) {
+                String videoFileName = fileStorageService.uploadVideoFile(file);
+                section.setVideoFileName(videoFileName);
+            } else if (fileType.equals("document")) {
+                String documentFileName = fileStorageService.uploadDocumentFile(file);
+                section.setDocumentFileName(documentFileName);
+            } else {
+                throw new BadRequestException("Only video, PDF, PPT, and Word files are allowed");
+            }
         }
-
         Section updatedSection = sectionRepository.save(section);
-
         return ResponseEntity.ok(modelMapper.map(updatedSection, SectionDTO.class));
     }
+
+
+
+
+
+
+
+
 
     public ResponseEntity<String> deleteSection(Long courseId, Long sectionId, Principal principal) {
         User user = userRepository.findByEmail(principal.getName()).orElseThrow(() -> new ForbiddenException("Access denied"));

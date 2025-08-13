@@ -109,6 +109,35 @@ private UserRepository userRepository;
             // Handle exception
         }
     }
+    public void sendRegistrationEmail(User user) {
+        String subject = "Registration Successful";
+        String body = "Dear " + user.getName() + ",\n\n" +
+                "You have successfully registered with our platform.\n\n" +
+                "Best regards,\n" +
+                "Your Platform Team";
+        sendEmail(user.getEmail(), subject, body);
+    }
+
+    public void sendPasswordResetEmail(User user) {
+        String subject = "Password Reset Successful";
+        String body = "Dear " + user.getName() + ",\n\n" +
+                "Your password has been reset successfully.\n\n" +
+                "If you did not perform this action, please contact us immediately.\n\n" +
+                "Best regards,\n" +
+                "Your Platform Team";
+        sendEmail(user.getEmail(), subject, body);
+    }
+
+    public void sendPasswordChangeEmail(User user) {
+        String subject = "Password Changed Successfully";
+        String body = "Dear " + user.getName() + ",\n\n" +
+                "Your password has been changed successfully.\n\n" +
+                "You can now login with your new password.\n\n" +
+                "Best regards,\n" +
+                "Your Platform Team";
+        sendEmail(user.getEmail(), subject, body);
+    }
+
 
 
 }

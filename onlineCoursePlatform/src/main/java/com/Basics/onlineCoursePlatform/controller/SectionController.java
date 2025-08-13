@@ -41,7 +41,7 @@ public class SectionController {
             @PathVariable Long courseId,
             @RequestParam("sectionName") String sectionName,
             @RequestParam("description") String description,
-            @RequestParam("videoFile") MultipartFile videoFile,
+            @RequestParam("File") MultipartFile videoFile,
             Principal principal) throws IOException {
 
 
@@ -55,7 +55,7 @@ public class SectionController {
             @PathVariable Long courseId,
             @PathVariable Long sectionId,
             @ModelAttribute SectionDTO sectionDTO,
-            @RequestParam(value = "videoFile", required = false) MultipartFile videoFile,
+            @RequestParam(value = "File", required = false) MultipartFile videoFile,
             Principal principal) throws IOException {
       return sectionService.updateSection(courseId,sectionId,sectionDTO,videoFile,principal);
     }
