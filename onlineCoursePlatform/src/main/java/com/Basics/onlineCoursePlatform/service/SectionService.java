@@ -62,6 +62,7 @@ private CourseProgressRepository courseProgressRepository;
                     sectionDTO.setSectionName(section.getSectionName());
                     sectionDTO.setDescription(section.getDescription());
                     sectionDTO.setVideoFileName(section.getVideoFileName());
+                    sectionDTO.setDocumentFileName(section.getDocumentFileName());
                     return sectionDTO;
                 })
                 .collect(Collectors.toList());
@@ -258,5 +259,5 @@ private CourseProgressRepository courseProgressRepository;
 
 
 
-    // Helper methods...
+
 }
